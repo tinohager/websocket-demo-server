@@ -44,7 +44,10 @@ app.Map("/ws", async (HttpContext context, IMemoryCache memoryCache) =>
 
             while (!receiveResult.CloseStatus.HasValue)
             {
-                var text = Encoding.UTF8.GetString(buffer.ToArray(), 0, buffer.Length);
+
+                
+
+                var text = Encoding.UTF8.GetString(buffer, 0, receiveResult.Count);
                 Console.WriteLine(text);
                 memoryCache.Set("test", text);
 
