@@ -22,7 +22,6 @@ app.Map("/ws", async context =>
 {
     var buffer = new byte[1024 * 4];
 
-
     WebSocketReceiveResult result = null;
 
     if (context.WebSockets.IsWebSocketRequest)
@@ -35,6 +34,8 @@ app.Map("/ws", async context =>
             {
                 var text = Encoding.UTF8.GetString(buffer.ToArray(), 0, buffer.Length);
                 Console.WriteLine(text);
+
+                Array.Clear(buffer, 0, buffer.Length);
 
                 await webSocket.SendAsync(Encoding.ASCII.GetBytes($"Received - {DateTime.Now}"), WebSocketMessageType.Text, true, CancellationToken.None);
 
