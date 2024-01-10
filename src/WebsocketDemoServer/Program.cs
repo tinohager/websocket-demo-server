@@ -23,6 +23,11 @@ app.UseSwaggerUI();
 
 app.UseWebSockets();
 
+var jsonSerializerOptions = new JsonSerializerOptions
+{
+    PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+};
+
 app.Map("/", (HttpContext context, IMemoryCache memoryCache) =>
 {
     if (memoryCache.TryGetValue<DeviceState>("deviceState", out var deviceState))
@@ -39,8 +44,6 @@ app.Map("/ws", async (HttpContext context, IMemoryCache memoryCache) =>
     {
         var buffer = new byte[1024 * 4];
 
-        WebSocketReceiveResult result = null;
-
         if (context.WebSockets.IsWebSocketRequest)
         {
             using var webSocket = await context.WebSockets.AcceptWebSocketAsync();
@@ -52,7 +55,7 @@ app.Map("/ws", async (HttpContext context, IMemoryCache memoryCache) =>
                 var json = Encoding.UTF8.GetString(buffer, 0, receiveResult.Count);
                 Console.WriteLine(json);
 
-                var deviceState = JsonSerializer.Deserialize<DeviceState>(json);
+                var deviceState = JsonSerializer.Deserialize<DeviceState>(json, jsonSerializerOptions);
                 memoryCache.Set("deviceState", deviceState);
 
                 Array.Clear(buffer, 0, buffer.Length);
