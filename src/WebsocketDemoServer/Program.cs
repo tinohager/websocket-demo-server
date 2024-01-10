@@ -3,6 +3,8 @@ using Microsoft.Extensions.Caching.Memory;
 using System.Net;
 using System.Net.WebSockets;
 using System.Text;
+using System.Text.Json;
+using WebsocketDemoServer.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -21,11 +23,14 @@ app.UseSwaggerUI();
 
 app.UseWebSockets();
 
-app.Map("/", async (HttpContext context, IMemoryCache memoryCache) =>
+app.Map("/", (HttpContext context, IMemoryCache memoryCache) =>
 {
-    memoryCache.TryGetValue("test", out string test);
+    if (memoryCache.TryGetValue<DeviceState>("deviceState", out var deviceState))
+    {
+        return Results.Ok(deviceState);
+    }
 
-    return Results.Ok(test);
+    return Results.NoContent();
 });
 
 app.Map("/ws", async (HttpContext context, IMemoryCache memoryCache) =>
@@ -44,12 +49,11 @@ app.Map("/ws", async (HttpContext context, IMemoryCache memoryCache) =>
 
             while (!receiveResult.CloseStatus.HasValue)
             {
+                var json = Encoding.UTF8.GetString(buffer, 0, receiveResult.Count);
+                Console.WriteLine(json);
 
-                
-
-                var text = Encoding.UTF8.GetString(buffer, 0, receiveResult.Count);
-                Console.WriteLine(text);
-                memoryCache.Set("test", text);
+                var deviceState = JsonSerializer.Deserialize<DeviceState>(json);
+                memoryCache.Set("deviceState", deviceState);
 
                 Array.Clear(buffer, 0, buffer.Length);
 
@@ -75,15 +79,3 @@ await app.RunAsync();
 //app.MapControllers();
 
 //app.Run();
-
-static void HandleMapTest1(IApplicationBuilder app)
-{
-    
-
-    app.Run(async context =>
-    {
-        
-
-        await context.Response.WriteAsync("Map Test 1");
-    });
-}
