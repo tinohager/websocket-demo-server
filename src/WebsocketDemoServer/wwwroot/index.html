@@ -1,0 +1,28 @@
+﻿<html>
+<head>
+
+</head>
+<body onload="startAutoReload();">
+    <div id="device-state" style="font-size:70vh; text-align:center;"></div>
+<script>
+    function startAutoReload() {
+        console.log('first');
+        setInterval(function () { loadDeviceState(); }, 300);
+    }
+
+    async function loadDeviceState() {
+        const response = await fetch('/deviceState');
+        console.log(response);
+        if (response.status !== 200) {
+            return;
+        }
+
+        const json = await response.json();
+        console.log(json)
+
+        const element = document.getElementById("device-state");
+        element.innerHTML = json.state;
+    }
+</script>
+</body>
+</html>

@@ -28,7 +28,7 @@ var jsonSerializerOptions = new JsonSerializerOptions
     PropertyNamingPolicy = JsonNamingPolicy.CamelCase
 };
 
-app.Map("/", (HttpContext context, IMemoryCache memoryCache) =>
+app.Map("/deviceState", (HttpContext context, IMemoryCache memoryCache) =>
 {
     if (memoryCache.TryGetValue<DeviceState>("deviceState", out var deviceState))
     {
@@ -75,6 +75,10 @@ app.Map("/ws", async (HttpContext context, IMemoryCache memoryCache) =>
         Console.WriteLine(exception.ToString());
     }
 });
+
+app.UseDefaultFiles();
+app.UseStaticFiles();
+
 
 await app.RunAsync();
 
