@@ -1,0 +1,79 @@
+name: Docker Image CI
+
+on:
+  push:
+    paths:
+    - 'src/**'
+    - '.github/workflows/**'
+    branches: [ main ]
+  pull_request:
+    paths:
+    - 'src/**'
+    - '.github/workflows/**'
+    branches: [ main ]
+
+jobs:
+  build-api:
+    
+    runs-on: ubuntu-latest
+    env:
+      working-directory: ./src/WebsocketDemoServer
+
+    permissions:
+      contents: read
+      packages: read
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Setup .NET Core
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: 8.0.x
+    - name: Install dependencies
+      run: dotnet restore
+      working-directory: ${{env.working-directory}}
+    - name: Build
+      run: dotnet build --no-restore --configuration Release
+      working-directory: ${{env.working-directory}}
+    - name: Publish
+      run: dotnet publish --no-restore --configuration Release --output publish
+      working-directory: ${{env.working-directory}}
+    - name: Upload artifact
+      uses: actions/upload-artifact@v3
+      with:
+        # Artifact name
+        name: api
+        # Directory containing files to upload
+        path: ${{env.working-directory}}/publish/
+        # Days before delete
+        retention-days: 1
+
+  build-docker:
+
+    needs: [build-api]
+    runs-on: ubuntu-latest
+    
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Download artifact
+      uses: actions/download-artifact@v3
+      with:
+        name: api
+        path: publish
+    - name: Login to GitHub Container Registry
+      uses: docker/login-action@v2
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    - name: Build and push
+      uses: docker/build-push-action@v3
+      with:
+        context: .
+        file: ./src/Dockerfile
+        push: true
+        tags: ghcr.io/${{ github.actor }}/websocketdemoserver:latest
