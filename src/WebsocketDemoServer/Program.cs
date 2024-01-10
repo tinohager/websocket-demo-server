@@ -20,14 +20,16 @@ app.UseWebSockets();
 
 app.Map("/ws", async context =>
 {
-    var buffer = new byte[1024 * 4];
-
-    WebSocketReceiveResult result = null;
-
-    if (context.WebSockets.IsWebSocketRequest)
+    try
     {
-        using (var webSocket = await context.WebSockets.AcceptWebSocketAsync())
+        var buffer = new byte[1024 * 4];
+
+        WebSocketReceiveResult result = null;
+
+        if (context.WebSockets.IsWebSocketRequest)
         {
+            using var webSocket = await context.WebSockets.AcceptWebSocketAsync();
+
             var receiveResult = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
 
             while (!receiveResult.CloseStatus.HasValue)
@@ -42,10 +44,14 @@ app.Map("/ws", async context =>
                 receiveResult = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
             }
         }
+        else
+        {
+            context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
+        }
     }
-    else
+    catch (Exception exception)
     {
-        context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
+        Console.WriteLine(exception.ToString());
     }
 });
 
