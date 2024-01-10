@@ -1,9 +1,12 @@
 using Microsoft.AspNetCore.WebSockets;
+using Microsoft.Extensions.Caching.Memory;
 using System.Net;
 using System.Net.WebSockets;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddMemoryCache();
 
 builder.Services.AddWebSockets(config => { });
 builder.Services.AddControllers();
@@ -18,7 +21,14 @@ app.UseSwaggerUI();
 
 app.UseWebSockets();
 
-app.Map("/ws", async context =>
+app.Map("/", async (HttpContext context, IMemoryCache memoryCache) =>
+{
+    memoryCache.TryGetValue("test", out string test);
+
+    return Results.Ok(test);
+});
+
+app.Map("/ws", async (HttpContext context, IMemoryCache memoryCache) =>
 {
     try
     {
@@ -36,6 +46,7 @@ app.Map("/ws", async context =>
             {
                 var text = Encoding.UTF8.GetString(buffer.ToArray(), 0, buffer.Length);
                 Console.WriteLine(text);
+                memoryCache.Set("test", text);
 
                 Array.Clear(buffer, 0, buffer.Length);
 
@@ -61,3 +72,15 @@ await app.RunAsync();
 //app.MapControllers();
 
 //app.Run();
+
+static void HandleMapTest1(IApplicationBuilder app)
+{
+    
+
+    app.Run(async context =>
+    {
+        
+
+        await context.Response.WriteAsync("Map Test 1");
+    });
+}
