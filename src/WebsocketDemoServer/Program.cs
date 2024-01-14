@@ -10,7 +10,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddMemoryCache();
 
-builder.Services.AddWebSockets(config => { });
+builder.Services.AddWebSockets(config => { config.KeepAliveInterval = TimeSpan.FromSeconds(30); });
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
@@ -52,33 +52,46 @@ app.Map("/ws", async (HttpContext context, IMemoryCache memoryCache) =>
 
             while (!receiveResult.CloseStatus.HasValue)
             {
+                if (receiveResult.MessageType == WebSocketMessageType.Close)
+                {
+                    app.Logger.LogInformation("Websocket - Close message received");
+                    break;
+                }
+
                 var json = Encoding.UTF8.GetString(buffer, 0, receiveResult.Count);
-                Console.WriteLine(json);
+                app.Logger.LogInformation($"Websocket - Message received, {json}");
 
                 var deviceState = JsonSerializer.Deserialize<DeviceState>(json, jsonSerializerOptions);
                 memoryCache.Set("deviceState", deviceState);
 
                 Array.Clear(buffer, 0, buffer.Length);
 
-                await webSocket.SendAsync(Encoding.ASCII.GetBytes($"Received - {DateTime.Now}"), WebSocketMessageType.Text, true, CancellationToken.None);
+                if (webSocket.State == WebSocketState.Open)
+                {
+                    await webSocket.SendAsync(Encoding.ASCII.GetBytes($"Received - {DateTime.Now}"), WebSocketMessageType.Text, true, CancellationToken.None);
+                }
+                else
+                {
+                    app.Logger.LogError("Websocket - Can not send received message");
+                }
 
                 receiveResult = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
             }
         }
         else
         {
+            app.Logger.LogError("Websocket - Invalid request");
             context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
         }
     }
     catch (Exception exception)
     {
-        Console.WriteLine(exception.ToString());
+        app.Logger.LogError(exception, "Websocket - Exception");
     }
 });
 
 app.UseDefaultFiles();
 app.UseStaticFiles();
-
 
 await app.RunAsync();
 
