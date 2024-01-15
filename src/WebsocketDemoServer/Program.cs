@@ -77,6 +77,16 @@ app.Map("/ws", async (HttpContext context, IMemoryCache memoryCache) =>
 
                 receiveResult = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
             }
+
+            if (receiveResult.CloseStatus.HasValue)
+            {
+                await webSocket.CloseAsync(
+                    receiveResult.CloseStatus.Value,
+                    receiveResult.CloseStatusDescription,
+                    CancellationToken.None);
+            }
+
+            app.Logger.LogInformation("Websocket - Close connection");
         }
         else
         {
