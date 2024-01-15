@@ -46,6 +46,8 @@ app.Map("/ws", async (
 {
     using var linkedCancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, hostApplicationLifetime.ApplicationStopping);
 
+    app.Logger.LogInformation("Websocket - New connection");
+
     try
     {
         var buffer = new byte[1024 * 4];
