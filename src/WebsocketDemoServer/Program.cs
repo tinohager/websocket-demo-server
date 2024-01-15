@@ -47,7 +47,7 @@ app.Map("/ws", async (
     CancellationToken cancellationToken,
     IHostApplicationLifetime hostApplicationLifetime) =>
 {
-    var keepAliveTimeout = TimeSpan.FromSeconds(30);
+    var keepAliveTimeout = TimeSpan.FromMinutes(10);
 
     using var timeoutCancellationTokenSource = new CancellationTokenSource(keepAliveTimeout);
     using var linkedCancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, hostApplicationLifetime.ApplicationStopping, timeoutCancellationTokenSource.Token);
