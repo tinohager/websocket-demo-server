@@ -38,8 +38,14 @@ app.Map("/deviceState", (HttpContext context, IMemoryCache memoryCache) =>
     return Results.NoContent();
 });
 
-app.Map("/ws", async (HttpContext context, IMemoryCache memoryCache, CancellationToken cancellationToken) =>
+app.Map("/ws", async (
+    HttpContext context,
+    IMemoryCache memoryCache,
+    CancellationToken cancellationToken,
+    IHostApplicationLifetime hostApplicationLifetime) =>
 {
+    using var linkedCancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, hostApplicationLifetime.ApplicationStopping);
+
     try
     {
         var buffer = new byte[1024 * 4];
@@ -48,7 +54,7 @@ app.Map("/ws", async (HttpContext context, IMemoryCache memoryCache, Cancellatio
         {
             using var webSocket = await context.WebSockets.AcceptWebSocketAsync();
 
-            var receiveResult = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), cancellationToken);
+            var receiveResult = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), linkedCancellationTokenSource.Token);
 
             while (!receiveResult.CloseStatus.HasValue)
             {
@@ -68,14 +74,14 @@ app.Map("/ws", async (HttpContext context, IMemoryCache memoryCache, Cancellatio
 
                 if (webSocket.State == WebSocketState.Open)
                 {
-                    await webSocket.SendAsync(Encoding.ASCII.GetBytes($"Received - {DateTime.Now}"), WebSocketMessageType.Text, true, cancellationToken);
+                    await webSocket.SendAsync(Encoding.ASCII.GetBytes($"Received - {DateTime.Now}"), WebSocketMessageType.Text, true, linkedCancellationTokenSource.Token);
                 }
                 else
                 {
                     app.Logger.LogError("Websocket - Can not send received message");
                 }
 
-                receiveResult = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), cancellationToken);
+                receiveResult = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), linkedCancellationTokenSource.Token);
             }
 
             if (receiveResult.CloseStatus.HasValue)
@@ -83,7 +89,7 @@ app.Map("/ws", async (HttpContext context, IMemoryCache memoryCache, Cancellatio
                 await webSocket.CloseAsync(
                     receiveResult.CloseStatus.Value,
                     receiveResult.CloseStatusDescription,
-                    cancellationToken);
+                    linkedCancellationTokenSource.Token);
             }
 
             app.Logger.LogInformation("Websocket - Close connection");
