@@ -47,7 +47,10 @@ app.Map("/ws", async (
     CancellationToken cancellationToken,
     IHostApplicationLifetime hostApplicationLifetime) =>
 {
-    using var linkedCancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, hostApplicationLifetime.ApplicationStopping);
+    var keepAliveTimeout = TimeSpan.FromSeconds(30);
+
+    using var timeoutCancellationTokenSource = new CancellationTokenSource(keepAliveTimeout);
+    using var linkedCancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, hostApplicationLifetime.ApplicationStopping, timeoutCancellationTokenSource.Token);
 
     app.Logger.LogInformation("Websocket - New connection");
 
@@ -68,6 +71,8 @@ app.Map("/ws", async (
                     app.Logger.LogInformation("Websocket - Close message received");
                     break;
                 }
+
+                timeoutCancellationTokenSource.CancelAfter(keepAliveTimeout);
 
                 var json = Encoding.UTF8.GetString(buffer, 0, receiveResult.Count);
                 app.Logger.LogInformation($"Websocket - Message received, {json}");
