@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.WebSockets;
 using Microsoft.Extensions.Caching.Memory;
+using System;
 using System.Net;
 using System.Net.WebSockets;
 using System.Text;
@@ -99,6 +100,10 @@ app.Map("/ws", async (
             app.Logger.LogError("Websocket - Invalid request");
             context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
         }
+    }
+    catch (OperationCanceledException)
+    {
+        app.Logger.LogInformation("Websocket - Canceled");
     }
     catch (Exception exception)
     {
