@@ -38,7 +38,7 @@ app.Map("/deviceState", (HttpContext context, IMemoryCache memoryCache) =>
     return Results.NoContent();
 });
 
-app.Map("/ws", async (HttpContext context, IMemoryCache memoryCache) =>
+app.Map("/ws", async (HttpContext context, IMemoryCache memoryCache, CancellationToken cancellationToken) =>
 {
     try
     {
@@ -48,7 +48,7 @@ app.Map("/ws", async (HttpContext context, IMemoryCache memoryCache) =>
         {
             using var webSocket = await context.WebSockets.AcceptWebSocketAsync();
 
-            var receiveResult = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
+            var receiveResult = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), cancellationToken);
 
             while (!receiveResult.CloseStatus.HasValue)
             {
@@ -68,14 +68,14 @@ app.Map("/ws", async (HttpContext context, IMemoryCache memoryCache) =>
 
                 if (webSocket.State == WebSocketState.Open)
                 {
-                    await webSocket.SendAsync(Encoding.ASCII.GetBytes($"Received - {DateTime.Now}"), WebSocketMessageType.Text, true, CancellationToken.None);
+                    await webSocket.SendAsync(Encoding.ASCII.GetBytes($"Received - {DateTime.Now}"), WebSocketMessageType.Text, true, cancellationToken);
                 }
                 else
                 {
                     app.Logger.LogError("Websocket - Can not send received message");
                 }
 
-                receiveResult = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
+                receiveResult = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), cancellationToken);
             }
 
             if (receiveResult.CloseStatus.HasValue)
@@ -83,7 +83,7 @@ app.Map("/ws", async (HttpContext context, IMemoryCache memoryCache) =>
                 await webSocket.CloseAsync(
                     receiveResult.CloseStatus.Value,
                     receiveResult.CloseStatusDescription,
-                    CancellationToken.None);
+                    cancellationToken);
             }
 
             app.Logger.LogInformation("Websocket - Close connection");
