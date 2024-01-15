@@ -1,4 +1,3 @@
-using Microsoft.AspNetCore.WebSockets;
 using Microsoft.Extensions.Caching.Memory;
 using System.Net;
 using System.Net.WebSockets;
@@ -10,8 +9,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddMemoryCache();
 
-//builder.Services.AddWebSockets();
-builder.Services.AddControllers();
+//builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -33,7 +31,7 @@ var jsonSerializerOptions = new JsonSerializerOptions
     PropertyNamingPolicy = JsonNamingPolicy.CamelCase
 };
 
-app.Map("/deviceState", (HttpContext context, IMemoryCache memoryCache) =>
+app.MapMethods("/deviceState", new[] { "GET" }, (HttpContext context, IMemoryCache memoryCache) =>
 {
     if (memoryCache.TryGetValue<DeviceState>("deviceState", out var deviceState))
     {
@@ -121,8 +119,3 @@ app.UseDefaultFiles();
 app.UseStaticFiles();
 
 await app.RunAsync();
-
-//app.UseAuthorization();
-//app.MapControllers();
-
-//app.Run();
